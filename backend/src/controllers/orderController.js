@@ -99,7 +99,8 @@ export async function listOrders(req, res) {
         id: o._id,
         total_amount: o.total_amount,
         status: o.status,
-        createdAt: o.createdAt
+        createdAt: o.createdAt,
+        itemCount: (o.products || []).reduce((s, p) => s + (p.quantity || 1), 0)
       }))
     );
   } catch (err) {

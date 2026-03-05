@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import api from "../api/client.js";
 
 export default function SupportChatPage() {
@@ -9,14 +10,12 @@ export default function SupportChatPage() {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState("");
   const [escalated, setEscalated] = useState(false);
+  const [activeNav, setActiveNav] = useState("chat");
   const bottomRef = useRef(null);
 
-  // On mount: hydrate from localStorage (order + last chat)
   useEffect(() => {
     const storedOrderId = window.localStorage.getItem("latestOrderId");
-    if (storedOrderId) {
-      setOrderId(storedOrderId);
-    }
+    if (storedOrderId) setOrderId(storedOrderId);
 
     const storedChatId = window.localStorage.getItem("latestChatId");
     if (storedChatId) {
@@ -24,9 +23,7 @@ export default function SupportChatPage() {
         try {
           const res = await api.get(`/chat/${storedChatId}`);
           setChatId(res.data.chatId);
-          if (res.data.orderId) {
-            setOrderId(res.data.orderId);
-          }
+          if (res.data.orderId) setOrderId(res.data.orderId);
           setEscalated(res.data.escalated);
           const withIds = (res.data.messages || []).map((m, index) => ({
             ...m,
@@ -40,7 +37,6 @@ export default function SupportChatPage() {
     }
   }, []);
 
-  // Scroll to bottom when messages change
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -82,104 +78,206 @@ export default function SupportChatPage() {
   }
 
   return (
-    <section className="flex h-[calc(100vh-150px)] flex-col gap-4">
-      <header className="space-y-2">
-        <p className="pill-badge">Module 4 · WhatsApp-style AI Support Bot</p>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-50">
-          Chat with support,{" "}
-          <span className="text-emerald-300">with business logic in front of AI.</span>
-        </h1>
-        <p className="text-sm text-slate-400">
-          Try messages like{" "}
-          <span className="font-mono text-slate-200">
-            &quot;Where is my order?&quot;
-          </span>{" "}
-          or{" "}
-          <span className="font-mono text-slate-200">
-            &quot;I want refund, this was terrible&quot;
-          </span>{" "}
-          to see intent classification and escalation.
-        </p>
-      </header>
-
-      <div className="glass-panel flex flex-1 flex-col overflow-hidden">
-            <div className="flex items-center justify-between border-b border-slate-800/80 px-4 py-2">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-emerald-500/20" />
-            <div>
-              <div className="text-sm font-medium text-slate-100">Support</div>
-              <div className="text-[11px] text-emerald-300">
-                {escalated ? "Escalated to human" : "AI-assisted · Demo only"}
-              </div>
+    <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        {/* Sidebar */}
+        <aside className="w-72 flex-shrink-0 flex flex-col border-r border-white/5 bg-background-dark/40 glass-panel">
+          <div className="p-6 flex flex-col gap-6 h-full">
+            <div className="flex flex-col">
+              <h1 className="text-slate-100 text-lg font-semibold">
+                AI Support
+              </h1>
+              <p className="text-primary/70 text-xs font-medium uppercase tracking-widest mt-1">
+                {escalated ? "Escalated to support" : "Powered by AI"}
+              </p>
             </div>
-          </div>
-          <div className="text-right text-[10px] text-slate-500">
-            <div>Chat ID: {chatId ? String(chatId).slice(-6) : "new"}</div>
-            <div>
-              Order context:{" "}
-              {orderId ? (
-                <span className="font-mono text-emerald-300">
-                  #{String(orderId).slice(-6)}
-                </span>
-              ) : (
-                <span className="text-slate-600">none</span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex-1 space-y-2 overflow-y-auto bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.08),_transparent_50%),_radial-gradient(circle_at_bottom,_rgba(56,189,248,0.06),_transparent_55%)] px-3 py-3">
-          {messages.length === 0 && (
-            <div className="mt-4 text-center text-xs text-slate-400">
-              No messages yet. Say hi and ask about your order, refunds, or returns.
-            </div>
-          )}
-          {messages.map((m) => (
-            <div
-              key={m.id}
-              className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`max-w-xs rounded-2xl px-3 py-2 text-xs shadow-sm ${
-                  m.sender === "user"
-                    ? "bg-emerald-500 text-emerald-950 rounded-br-sm"
-                    : "bg-slate-800 text-slate-50 rounded-bl-sm"
+            <nav className="flex flex-col gap-1 overflow-y-auto custom-scrollbar">
+              <button
+                type="button"
+                onClick={() => setActiveNav("chat")}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all cursor-pointer text-left ${
+                  activeNav === "chat"
+                    ? "bg-primary/10 text-primary border border-primary/20"
+                    : "text-slate-400 hover:bg-white/5"
                 }`}
               >
-                <p>{m.text}</p>
-                {m.intent && (
-                  <p className="mt-1 text-[9px] uppercase tracking-wide text-emerald-200/80">
-                    intent: {m.intent}
-                  </p>
-                )}
+                <span className="material-symbols-outlined text-[22px]">
+                  chat_bubble
+                </span>
+                <span className="text-sm font-medium">Active Chat</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveNav("history")}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all cursor-pointer text-left ${
+                  activeNav === "history"
+                    ? "bg-primary/10 text-primary border border-primary/20"
+                    : "text-slate-400 hover:bg-white/5"
+                }`}
+              >
+                <span className="material-symbols-outlined text-[22px]">
+                  history
+                </span>
+                <span className="text-sm font-medium">Chat History</span>
+              </button>
+              <Link
+                to="/cart"
+                className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 transition-all"
+              >
+                <span className="material-symbols-outlined text-[22px]">
+                  shopping_cart
+                </span>
+                <span className="text-sm font-medium">Cart</span>
+              </Link>
+              <Link
+                to="/"
+                className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 transition-all"
+              >
+                <span className="material-symbols-outlined text-[22px]">
+                  storefront
+                </span>
+                <span className="text-sm font-medium">Shop</span>
+              </Link>
+              <div className="mt-auto pt-4">
+                <button
+                  type="button"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 transition-all w-full text-left"
+                >
+                  <span className="material-symbols-outlined text-[22px]">
+                    info
+                  </span>
+                  <span className="text-sm font-medium">Help</span>
+                </button>
               </div>
-            </div>
-          ))}
-          <div ref={bottomRef} />
-        </div>
+            </nav>
+          </div>
+        </aside>
 
-        <form
-          onSubmit={sendMessage}
-          className="flex items-center gap-2 border-t border-slate-800/80 bg-slate-950/80 px-3 py-2"
-        >
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Type a message…"
-            className="h-9 flex-1 rounded-full border border-slate-700 bg-slate-900 px-3 text-xs text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
-          />
-          <button
-            type="submit"
-            disabled={isSending || !input.trim()}
-            className="inline-flex h-9 items-center justify-center rounded-full bg-emerald-500 px-3 text-xs font-medium text-emerald-950 shadow-md shadow-emerald-500/40 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-300"
-          >
-            {isSending ? "Sending…" : "Send"}
-          </button>
-        </form>
+        {/* Chat Area */}
+        <section className="flex-1 flex flex-col forest-gradient relative min-w-0 min-h-0 overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-y-auto p-6 flex flex-col gap-6 custom-scrollbar">
+            {messages.length === 0 && (
+              <div className="flex flex-col items-start max-w-[70%]">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="bg-primary/20 p-1.5 rounded-lg">
+                    <span className="material-symbols-outlined text-primary text-sm">
+                      smart_toy
+                    </span>
+                  </div>
+                  <span className="text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                    AI Support
+                  </span>
+                </div>
+                <div className="bg-message-bot glass-panel text-slate-100 rounded-2xl rounded-tl-none px-5 py-3.5 shadow-xl border border-white/5">
+                  <p className="text-[15px] leading-relaxed">
+                    Hello! I can help with your order, impact reporting, refunds,
+                    or returns. What would you like to know?
+                  </p>
+                </div>
+              </div>
+            )}
+            {messages.map((m) =>
+              m.sender === "user" ? (
+                <div
+                  key={m.id}
+                  className="flex flex-col items-end self-end max-w-[70%]"
+                >
+                  <div className="flex items-center gap-3 mb-2 flex-row-reverse">
+                    <div className="bg-slate-700/50 p-1.5 rounded-lg">
+                      <span className="material-symbols-outlined text-slate-300 text-sm">
+                        person
+                      </span>
+                    </div>
+                    <span className="text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                      You
+                    </span>
+                  </div>
+                  <div className="bg-primary text-background-dark rounded-2xl rounded-tr-none px-5 py-3.5 shadow-lg shadow-primary/10">
+                    <p className="text-[15px] font-medium leading-relaxed">
+                      {m.text}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div key={m.id} className="flex flex-col items-start max-w-[70%]">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="bg-primary/20 p-1.5 rounded-lg">
+                      <span className="material-symbols-outlined text-primary text-sm">
+                        smart_toy
+                      </span>
+                    </div>
+                    <span className="text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                      AI Support
+                    </span>
+                  </div>
+                  <div className="bg-message-bot glass-panel text-slate-100 rounded-2xl rounded-tl-none px-5 py-3.5 shadow-xl border border-white/5">
+                    <p className="text-[15px] leading-relaxed">{m.text}</p>
+                  </div>
+                  {m.intent && (
+                    <div className="mt-1.5 flex items-center gap-1.5 px-1">
+                      <span className="material-symbols-outlined text-primary/60 text-[14px]">
+                        psychology
+                      </span>
+                      <p className="text-primary/60 text-[11px] font-medium italic">
+                        Intent: {m.intent}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )
+            )}
+            <div ref={bottomRef} />
+          </div>
+
+          {/* Input Bar */}
+          <div className="flex-shrink-0 p-6 bg-background-dark/60 backdrop-blur-xl border-t border-white/5">
+            {error && (
+              <p className="text-xs text-red-400 mb-2 text-center">{error}</p>
+            )}
+            <form
+              onSubmit={sendMessage}
+              className="max-w-4xl mx-auto flex items-center gap-4 bg-white/5 rounded-2xl border border-white/10 p-2 focus-within:border-primary/50 transition-all"
+            >
+              <button
+                type="button"
+                className="p-2 text-slate-400 hover:text-primary transition-colors"
+                aria-label="Attach"
+              >
+                <span className="material-symbols-outlined">add_circle</span>
+              </button>
+              <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Type your question..."
+                className="flex-1 bg-transparent border-none focus:ring-0 text-slate-100 placeholder-slate-500 text-sm py-2"
+                type="text"
+              />
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  className="p-2 text-slate-400 hover:text-primary transition-colors"
+                  aria-label="Emoji"
+                >
+                  <span className="material-symbols-outlined">mood</span>
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSending || !input.trim()}
+                  className="ml-1 bg-primary text-background-dark p-2.5 rounded-xl flex items-center justify-center hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Send"
+                >
+                  <span className="material-symbols-outlined text-[20px]">
+                    send
+                  </span>
+                </button>
+              </div>
+            </form>
+            <p className="text-center text-[10px] text-slate-500 mt-3 uppercase tracking-widest font-medium">
+              Powered by RayevaStore · Carbon Neutral Compute
+            </p>
+          </div>
+        </section>
       </div>
-
-      {error && <p className="text-xs text-red-400">{error}</p>}
-    </section>
+    </div>
   );
 }
-

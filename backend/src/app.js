@@ -12,7 +12,7 @@ app.use(cors({ origin: process.env.FRONTEND_ORIGIN || "*" }));
 app.use(express.json());
 
 app.get("/health", (req, res) => {
-  res.json({ status: "ok", message: "Sustainable Commerce API running" });
+  res.json({ status: "ok", message: "Rayeva E-Commerce API running" });
 });
 
 app.use("/api/orders", orderRoutes);
