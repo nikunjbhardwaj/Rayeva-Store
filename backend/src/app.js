@@ -8,7 +8,19 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors({ origin: process.env.FRONTEND_ORIGIN || "*" }));
+app.use(cors({
+  origin: function (origin, callback) {
+    const allowed = process.env.FRONTEND_ORIGIN || "";
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    // Allow the primary domain
+    if (origin === allowed) return callback(null, true);
+    // Allow any Vercel preview deployment
+    if (origin.endsWith(".vercel.app")) return callback(null, true);
+    // Block everything else
+    callback(null, false);
+  }
+}));
 app.use(express.json());
 
 app.get("/health", (req, res) => {
